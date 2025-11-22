@@ -1,0 +1,11 @@
+../Core/Src/AX12.c:11:16:AX12_CalcChecksum	24	static
+../Core/Src/AX12.c:23:13:AX12_FlushRx	24	static
+../Core/Src/AX12.c:35:6:AX12_Init	24	static
+../Core/Src/AX12.c:43:13:AX12_WriteRaw	64	static
+../Core/Src/AX12.c:92:12:AX12_ReadRaw	56	static
+../Core/Src/AX12.c:135:6:AX12_TorqueEnable	16	static
+../Core/Src/AX12.c:139:6:AX12_SetGoalPosition	24	static
+../Core/Src/AX12.c:147:6:AX12_SetMovingSpeed	24	static
+../Core/Src/AX12.c:155:6:AX12_SetID	16	static
+../Core/Src/AX12.c:160:5:AX12_GetPresentPosition	24	static
+../Core/Src/AX12.c:169:5:AX12_GetPresentTemperature	16	static
