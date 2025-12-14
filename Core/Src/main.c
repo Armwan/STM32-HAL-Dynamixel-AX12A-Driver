@@ -46,27 +46,12 @@ COM_InitTypeDef BspCOMInit;
 UART_HandleTypeDef huart7;
 
 /* USER CODE BEGIN PV */
-//uint8_t packet[8] = {0xFF, 0xFF, 0x01, 0x04, 0x03, 0x19, 0x00, 0xDE};
-//uint8_t packet2[8] = {0xFF, 0xFF, 0x01, 0x04, 0x03, 0x19, 0x01, 0xDD};
-//
-//uint8_t torque_enable_packet[8] = {0xFF, 0xFF, 0x01, 0x04, 0x03, 0x18, 0x01, 0xDE};
-//uint8_t goal_pos_512[9] = {0xFF, 0xFF, 0x01, 0x05, 0x03, 0x1E, 0x00, 0x02, 0xD6};
-//
-//#define DXL_ID                      0x01
-//#define DXL_TIMEOUT_MS              50
-//#define DXL_DIR_PORT GPIOA
-//#define DXL_DIR_PIN  GPIO_PIN_3
-//#define DXL_TX_MODE() HAL_GPIO_WritePin(DXL_DIR_PORT, DXL_DIR_PIN, GPIO_PIN_SET)
-//#define DXL_RX_MODE() HAL_GPIO_WritePin(DXL_DIR_PORT, DXL_DIR_PIN, GPIO_PIN_RESET)
-//uint8_t g_rx_buffer[8]; // بافر دریافت
-//uint8_t ping_packet[6];
-//int ping_result = -1;
-//volatile uint16_t g_present_position = 0;
 
 AX12_Handle_TypeDef ax12;
 uint16_t current_pos = 0;
 uint8_t current_temp = 0;
 int read_status = 0;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -75,168 +60,7 @@ static void MPU_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_UART7_Init(void);
 /* USER CODE BEGIN PFP */
-//uint8_t DXL_CalculateChecksum(uint8_t *packet, uint16_t length)
-//{
-//    uint8_t checksum = 0;
-//    for (uint16_t i = 0; i < length; i++)
-//    {
-//        checksum += packet[i];
-//    }
-//    return (~checksum) & 0xFF;
-//}
-//
-//int DXL_Ping_Blocking(uint8_t id)
-//{
-//    // --- ساخت بسته PING ---
-//    uint8_t tx_data[] = {id, 0x02, 0x01}; // ID, Length, PING
-//
-//    ping_packet[0] = 0xFF;
-//    ping_packet[1] = 0xFF;
-//    memcpy(&ping_packet[2], tx_data, sizeof(tx_data));
-//    ping_packet[5] = DXL_CalculateChecksum(tx_data, sizeof(tx_data));
-//
-//    // --- 1. ارسال ---
-//    DXL_TX_MODE(); // فعال کردن TX
-//    HAL_UART_Transmit(&huart7, ping_packet, 6, DXL_TIMEOUT_MS);
-//
-//    // --- 2. انتظار TC (حیاتی برای نیمه‌دوطرفه) ---
-//    // مطمئن می‌شویم که آخرین بیت ارسال شده است.
-//    while (__HAL_UART_GET_FLAG(&huart7, UART_FLAG_TC) == RESET);
-//
-//    // --- 3. تغییر جهت و دریافت ---
-//    DXL_RX_MODE(); // تغییر فوری به RX
-//
-//    // انتظار برای پاسخ 6 بایتی وضعیت (Status Packet)
-//    HAL_StatusTypeDef rx_status = HAL_UART_Receive(&huart7, g_rx_buffer, 6, DXL_TIMEOUT_MS);
-//
-//    if (rx_status != HAL_OK)
-//    {
-//        return -1; // خطا در دریافت (تایم‌اوت)
-//    }
-//
-//    // --- 4. بررسی پاسخ (اختیاری اما مهم) ---
-//    // بررسی Header (0xFF 0xFF) و ID
-//    if (g_rx_buffer[0] == 0xFF && g_rx_buffer[1] == 0xFF && g_rx_buffer[2] == id)
-//    {
-//        // ... (می‌توانید Checksum و بایت Error را بررسی کنید)
-//        if (g_rx_buffer[4] == 0x00)
-//        {
-//            return 0; // PING موفقیت آمیز
-//        }
-//    }
-//    return -2; // پاسخ نامعتبر
-//}
-//
-//void DXL_SendPacket(uint8_t *packet, uint16_t length)
-//{
-//    // 1. Set Direction to TX
-//    DXL_TX_MODE();
-//
-//    // 2. Transmit
-//    HAL_UART_Transmit(&huart7, packet, length, DXL_TIMEOUT_MS);
-//
-//    // 3. Wait for Transmission Complete (Critical for Half-Duplex)
-//    while (__HAL_UART_GET_FLAG(&huart7, UART_FLAG_TC) == RESET);
-//
-//    // 4. Set Direction to RX immediately to listen for Status Packet
-//    DXL_RX_MODE();
-//
-//    // 5. Receive Status Packet (Optional: You can ignore this for now if you just want to move)
-//    // The motor WILL send back 6 bytes (0xFF 0xFF ID Len Err CS)
-//    HAL_UART_Receive(&huart7, g_rx_buffer, 6, DXL_TIMEOUT_MS);
-//}
-//void DXL_SetGoalPosition(uint8_t id, uint16_t position)
-//{
-//    uint8_t packet[9];
-//
-//    // Limit position to 0-1023 (Safe range)
-//    if (position > 1023) position = 1023;
-//
-//    uint8_t pos_L = position & 0xFF;        // Low Byte
-//    uint8_t pos_H = (position >> 8) & 0xFF; // High Byte
-//
-//    packet[0] = 0xFF;
-//    packet[1] = 0xFF;
-//    packet[2] = id;
-//    packet[3] = 0x05; // Length: Instr(1) + Addr(1) + DataL(1) + DataH(1) + 2(offset) -> actually manual says N+2. N=3. So 5.
-//    packet[4] = 0x03; // Instruction: WRITE_DATA
-//    packet[5] = 0x1E; // Address: Goal Position
-//    packet[6] = pos_L;
-//    packet[7] = pos_H;
-//
-//    // Calculate Checksum: ~(ID + Length + Instruction + Param1 + Param2 + Param3)
-//    uint8_t checksum = (id + 0x05 + 0x03 + 0x1E + pos_L + pos_H);
-//    packet[8] = (~checksum) & 0xFF;
-//
-//    DXL_SendPacket(packet, 9);
-//}
-//
-//int DXL_ReadPosition(uint8_t id)
-//{
-//    uint8_t tx_packet[8];
-//
-//    // --- 1. Construct Packet ---
-//    tx_packet[0] = 0xFF;
-//    tx_packet[1] = 0xFF;
-//    tx_packet[2] = id;
-//    tx_packet[3] = 0x04;
-//    tx_packet[4] = 0x02; // Instruction: READ_DATA
-//    tx_packet[5] = 0x24; // Address: Present Position (Low Byte)
-//    tx_packet[6] = 0x02; // Length to read: 2 Bytes
-//
-//    // Checksum calculation
-//    uint8_t checksum = (id + 0x04 + 0x02 + 0x24 + 0x02);
-//    tx_packet[7] = (~checksum) & 0xFF;
-//
-//    // --- 2. Transmit ---
-//    DXL_TX_MODE();
-//    if(HAL_UART_Transmit(&huart7, tx_packet, 8, DXL_TIMEOUT_MS) != HAL_OK)
-//    {
-//        return -1;
-//    }
-//
-//    // --- 3. Switch Direction ---
-//    while (__HAL_UART_GET_FLAG(&huart7, UART_FLAG_TC) == RESET);
-//    DXL_RX_MODE();
-//
-//    // =================================================================
-//    // NEW STEP: CLEAR FLAGS AND FLUSH BUFFER
-//    // This removes the "Echo" of your own transmission and clears Overrun errors
-//    // =================================================================
-//
-//    // Clear Overrun, Noise, Framing, Parity errors
-//    __HAL_UART_CLEAR_FLAG(&huart7, UART_CLEAR_OREF | UART_CLEAR_NEF | UART_CLEAR_PEF | UART_CLEAR_FEF);
-//
-//    // Flush any data sitting in the RX Data Register (RDR)
-//    uint8_t temp;
-//    while(__HAL_UART_GET_FLAG(&huart7, UART_FLAG_RXNE))
-//    {
-//        temp = (uint8_t)(huart7.Instance->RDR & 0x00FF);
-//    }
-//    // =================================================================
-//
-//    // --- 4. Receive Response ---
-//    // Now the UART is clean and ready for the real Motor Response
-//    if(HAL_UART_Receive(&huart7, g_rx_buffer, 8, DXL_TIMEOUT_MS) != HAL_OK)
-//    {
-//        return -1; // Timeout or HAL Error
-//    }
-//
-//    // --- 5. Parse Data ---
-//    if (g_rx_buffer[0] == 0xFF && g_rx_buffer[1] == 0xFF && g_rx_buffer[2] == id)
-//    {
-//        if (g_rx_buffer[4] != 0) return -2; // Motor Error
-//
-//        uint8_t pos_low = g_rx_buffer[5];
-//        uint8_t pos_high = g_rx_buffer[6];
-//
-//        g_present_position = (uint16_t)(pos_high << 8) | pos_low;
-//
-//        return 0; // Success
-//    }
-//
-//    return -3; // Invalid Packet Header
-//}
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -293,25 +117,6 @@ int main(void)
   HAL_Delay(50);
   /* USER CODE END 2 */
 
-  /* Initialize leds */
-  BSP_LED_Init(LED_GREEN);
-  BSP_LED_Init(LED_YELLOW);
-  BSP_LED_Init(LED_RED);
-
-  /* Initialize USER push-button, will be used to trigger an interrupt each time it's pressed.*/
-  BSP_PB_Init(BUTTON_USER, BUTTON_MODE_EXTI);
-
-  /* Initialize COM1 port (115200, 8 bits (7-bit data + 1 stop bit), no parity */
-  BspCOMInit.BaudRate   = 115200;
-  BspCOMInit.WordLength = COM_WORDLENGTH_8B;
-  BspCOMInit.StopBits   = COM_STOPBITS_1;
-  BspCOMInit.Parity     = COM_PARITY_NONE;
-  BspCOMInit.HwFlowCtl  = COM_HWCONTROL_NONE;
-  if (BSP_COM_Init(COM1, &BspCOMInit) != BSP_ERROR_NONE)
-  {
-    Error_Handler();
-  }
-
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
@@ -341,28 +146,6 @@ int main(void)
 	      AX12_GetPresentTemperature(&ax12, &current_temp);
 
 	      HAL_Delay(1000);
-
-//	  	    DXL_SetGoalPosition(DXL_ID, 0);
-//	        HAL_Delay(1000);
-//	        DXL_ReadPosition(DXL_ID);
-//	        HAL_Delay(1000);
-//
-//	        // Move to Position 512 (150 degrees - Center)
-//	        DXL_SetGoalPosition(DXL_ID, 512);
-//	        HAL_Delay(1000);
-//	        DXL_ReadPosition(DXL_ID);
-//	        HAL_Delay(1000);
-//	        // Move to Position 1023 (300 degrees)
-//	        DXL_SetGoalPosition(DXL_ID, 1023);
-//	        HAL_Delay(1000);
-//	        DXL_ReadPosition(DXL_ID);
-//	        HAL_Delay(1000);
-//	  	  ping_result = DXL_Ping_Blocking(DXL_ID);
-//	  	  HAL_Delay(500);
-//      HAL_UART_Transmit(&huart7, packet,  sizeof(packet), HAL_MAX_DELAY);
-//      HAL_Delay(2000);
-//      HAL_UART_Transmit(&huart7, packet2,  sizeof(packet), HAL_MAX_DELAY);
-//      HAL_Delay(2000);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
